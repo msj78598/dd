@@ -1,0 +1,51 @@
+globalThis.__BUILD_MANIFEST = {
+  "pages": {
+    "/_app": [
+      "static/chunks/f751e_next_dist_compiled_6983883b._.js",
+      "static/chunks/f751e_next_dist_shared_lib_4f2371be._.js",
+      "static/chunks/f751e_next_dist_client_dcf1c985._.js",
+      "static/chunks/f751e_next_dist_5ed97d0d._.js",
+      "static/chunks/f751e_next_app_2f8828b4.js",
+      "static/chunks/[next]_entry_page-loader_ts_17891e9f._.js",
+      "static/chunks/f751e_react-dom_f0f97ff0._.js",
+      "static/chunks/f751e_db1aa392._.js",
+      "static/chunks/[root-of-the-server]__45f6233a._.js",
+      "static/chunks/smart-meter-ai_pages__app_2da965e7._.js",
+      "static/chunks/turbopack-smart-meter-ai_pages__app_5097305e._.js"
+    ],
+    "/_error": [
+      "static/chunks/f751e_next_dist_compiled_6983883b._.js",
+      "static/chunks/f751e_next_dist_shared_lib_23725d77._.js",
+      "static/chunks/f751e_next_dist_client_dcf1c985._.js",
+      "static/chunks/f751e_next_dist_ac7f8f92._.js",
+      "static/chunks/f751e_next_error_167f83bf.js",
+      "static/chunks/[next]_entry_page-loader_ts_3f817e31._.js",
+      "static/chunks/f751e_react-dom_f0f97ff0._.js",
+      "static/chunks/f751e_db1aa392._.js",
+      "static/chunks/[root-of-the-server]__597df3ec._.js",
+      "static/chunks/smart-meter-ai_pages__error_2da965e7._.js",
+      "static/chunks/turbopack-smart-meter-ai_pages__error_ead95edc._.js"
+    ]
+  },
+  "devFiles": [],
+  "polyfillFiles": [
+    "static/chunks/f751e_next_dist_build_polyfills_polyfill-nomodule.js"
+  ],
+  "lowPriorityFiles": [],
+  "rootMainFiles": [
+    "static/chunks/[turbopack]_browser_dev_hmr-client_hmr-client_ts_7b0b10f3._.js",
+    "static/chunks/f751e_next_dist_compiled_react-dom_dfa4f6f7._.js",
+    "static/chunks/f751e_next_dist_compiled_react-server-dom-turbopack_122f2992._.js",
+    "static/chunks/f751e_next_dist_compiled_next-devtools_index_f458d496.js",
+    "static/chunks/f751e_next_dist_compiled_6839a959._.js",
+    "static/chunks/f751e_next_dist_client_36b289da._.js",
+    "static/chunks/f751e_next_dist_4fc0b91c._.js",
+    "static/chunks/f751e_@swc_helpers_cjs_c38c3a2b._.js",
+    "static/chunks/smart-meter-ai_a0ff3932._.js",
+    "static/chunks/turbopack-smart-meter-ai_98d5afd4._.js"
+  ]
+};
+globalThis.__BUILD_MANIFEST.lowPriorityFiles = [
+"/static/" + process.env.__NEXT_BUILD_ID + "/_buildManifest.js",
+"/static/" + process.env.__NEXT_BUILD_ID + "/_ssgManifest.js"
+];
