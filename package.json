@@ -1,19 +1,17 @@
 {
     "name": "smart-meter-ai",
     "version": "1.0.0",
-    "type": "module",
     "scripts": {
         "dev": "next dev",
         "build": "next build",
-        "start": "next start",
-        "lint": "next lint"
+        "start": "next start"
     },
     "dependencies": {
-        "autoprefixer": "^10.4.24",
-        "next": "latest",
-        "postcss": "^8.5.6",
-        "react": "latest",
-        "react-dom": "latest",
-        "tailwindcss": "^4.2.0"
+        "next": "16.1.6",
+        "react": "^19.0.0",
+        "react-dom": "^19.0.0",
+        "autoprefixer": "^10.4.20",
+        "postcss": "^8.4.47",
+        "tailwindcss": "^3.4.14"
     }
 }

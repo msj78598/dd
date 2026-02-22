@@ -1,6 +1,0 @@
-{
-  "version": 3,
-  "sources": [],
-  "sections": [
-    {"offset": {"line": 14, "column": 0}, "map": {"version":3,"sources":["file:///C:/Users/78598/Documents/direct/smart-meter-ai/src/app/page.tsx"],"sourcesContent":["<input\r\n    type=\"file\"\r\n    accept=\"image/*\"\r\n    onChange={(e) => {\r\n        const file = e.target.files?.[0];\r\n        if (file) analyzeImage(file);\r\n    }}\r\n/>"],"names":[],"mappings":";;cAAA,QAAC;IACG,MAAK;IACL,QAAO;IACP,UAAU,CAAC;QACP,MAAM,OAAO,EAAE,MAAM,CAAC,KAAK,EAAE,CAAC,EAAE;QAChC,IAAI,MAAM,aAAa;IAC3B"}}]
-}
