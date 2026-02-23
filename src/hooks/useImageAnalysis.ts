@@ -26,40 +26,67 @@ export const useImageAnalysis = () => {
       تحدث بلهجة هندسية محترفة ومباشرة باللغة العربية.
     `;
 
+        // قائمة النماذج بالترتيب (يبدأ بنموذجك المفضل ثم ينتقل للبدائل المضمونة إذا لزم الأمر)
+        const modelsToTry = [
+            "gemini-2.5-flash-native-audio-latest",
+            "gemini-2.0-flash",
+            "gemini-1.5-pro",
+            "gemini-1.5-flash"
+        ];
+
         try {
             const reader = new FileReader();
             reader.readAsDataURL(imageFile);
             reader.onloadend = async () => {
                 const base64Data = (reader.result as string).split(',')[1];
 
-                // تم دمج النموذج الذي طلبته تحديداً هنا
-                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-native-audio-latest:generateContent?key=${apiKey}`, {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                        contents: [{ parts: [{ text: prompt }, { inline_data: { mime_type: "image/jpeg", data: base64Data } }] }]
-                    })
-                });
+                let success = false;
+                let lastErrorMessage = "";
 
-                const data = await response.json();
+                // حلقة البحث الديناميكية: تجرب النماذج واحداً تلو الآخر
+                for (const modelName of modelsToTry) {
+                    try {
+                        console.log(`🔄 جاري محاولة الاتصال بالنموذج: ${modelName}...`);
 
-                if (data.error) {
-                    setResult(`❌ خطأ من السيرفر: ${data.error.message}`);
-                } else if (data.candidates && data.candidates[0]) {
-                    const text = data.candidates[0].content.parts[0].text;
-                    setResult(text);
+                        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`, {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({
+                                contents: [{ parts: [{ text: prompt }, { inline_data: { mime_type: "image/jpeg", data: base64Data } }] }]
+                            })
+                        });
 
-                    // تفعيل النطق الصوتي التلقائي
-                    const speech = new SpeechSynthesisUtterance(text);
-                    speech.lang = 'ar-SA';
-                    window.speechSynthesis.speak(speech);
-                } else {
-                    setResult("⚠️ الرد فارغ. يرجى إعادة المحاولة بصورة أوضح.");
+                        const data = await response.json();
+
+                        if (!data.error && data.candidates && data.candidates[0]) {
+                            const text = data.candidates[0].content.parts[0].text;
+
+                            // عرض النتيجة مع اسم النموذج الذي نجح في المهمة
+                            setResult(`✅ (تم الفحص بنجاح عبر: ${modelName})\n\n${text}`);
+
+                            // تفعيل النطق الصوتي
+                            const speech = new SpeechSynthesisUtterance(text);
+                            speech.lang = 'ar-SA';
+                            window.speechSynthesis.speak(speech);
+
+                            success = true;
+                            break; // الخروج من الحلقة فور نجاح أحد النماذج
+                        } else {
+                            console.warn(`⚠️ فشل النموذج ${modelName}:`, data.error?.message);
+                            lastErrorMessage = data.error?.message || "استجابة فارغة";
+                        }
+                    } catch (err) {
+                        console.warn(`⚠️ تعذر الوصول للنموذج ${modelName}`);
+                    }
                 }
+
+                if (!success) {
+                    setResult(`❌ فشلت جميع النماذج في تحليل الصورة.\nآخر خطأ مسجل: ${lastErrorMessage}`);
+                }
+                setLoading(false);
             };
         } catch (error) {
-            setResult("❌ فشل الاتصال بمحرك الذكاء الاصطناعي.");
-        } finally {
+            setResult("❌ فشل جذري في معالجة الصورة قبل إرسالها.");
             setLoading(false);
         }
     };
