@@ -8,19 +8,21 @@ export const useImageAnalysis = () => {
 
     const analyzeImage = async (imageFile: File) => {
         setLoading(true);
-        // التأكد من استخدام المفتاح الصحيح المعتمد في Vercel
+        setResult(null);
+
+        // تأكد أن المفتاح معرف في Vercel باسم NEXT_PUBLIC_GEMINI_API_KEY
         const apiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY;
 
         if (!apiKey) {
-            setResult("❌ خطأ: مفتاح الـ API غير معرف. تأكد من إعدادات Vercel.");
+            setResult("❌ خطأ: لم يتم العثور على مفتاح API (NEXT_PUBLIC_GEMINI_API_KEY).");
             setLoading(false);
             return;
         }
 
-        // استعادة الأمر الهندسي المفصل الذي كان يعمل بنجاح
-        const prompt = `بصفتك مهندس تدقيق كهربائي خبير، حلل صورة العداد هذه بدقة:
+        // الأوامر الهندسية التي كانت تعمل بنجاح سابقاً
+        const prompt = `أنت مهندس تدقيق كهربائي خبير. حلل صورة العداد هذه بدقة:
     1. شاشة العداد: استخرج القراءات، أيقونة الاتصال، وأي رموز خطأ (Error Codes).
-    2. التوصيلات: دقق في ترتيب الفازات (أحمر R، أصفر Y، أزرق B) ورصد أي تداخل أو ارتخاء.
+    2. التوصيلات: دقق في تسلسل الفازات (أحمر R، أصفر Y، أزرق B) ورصد أي تداخل أو ارتخاء.
     3. الفحص الإنشائي: رصد آثار حرارة، تفحم، أو تلاعب بالأختام.
     4. القاطع: تحقق من وضعية المفتاح وسلامته.
     قدم تقريراً فنياً نقاطياً مباشراً باللغة العربية.`;
@@ -40,20 +42,23 @@ export const useImageAnalysis = () => {
                 });
 
                 const data = await response.json();
-                if (data.candidates && data.candidates[0]) {
+
+                if (data.error) {
+                    setResult(`❌ خطأ من Gemini: ${data.error.message}`);
+                } else if (data.candidates && data.candidates[0]) {
                     const textResponse = data.candidates[0].content.parts[0].text;
                     setResult(textResponse);
 
-                    // تفعيل الاستجابة الصوتية للتقرير
+                    // تفعيل النطق الصوتي للتقرير
                     const utterance = new SpeechSynthesisUtterance(textResponse);
                     utterance.lang = 'ar-SA';
                     window.speechSynthesis.speak(utterance);
                 } else {
-                    setResult("⚠️ تعذر التحليل. يرجى تحسين إضاءة الصورة والتقاطها من زاوية مقابلة للعداد.");
+                    setResult("⚠️ لم يتمكن الذكاء الاصطناعي من تحليل هذه الصورة المحددة. يرجى التقاطها بزاوية مباشرة وإضاءة أفضل.");
                 }
             };
         } catch (error) {
-            setResult("❌ خطأ في الاتصال بمحرك الذكاء الاصطناعي.");
+            setResult("❌ فشل الاتصال بالسيرفر. تأكد من جودة الإنترنت.");
         } finally {
             setLoading(false);
         }
