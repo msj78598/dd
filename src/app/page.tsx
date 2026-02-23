@@ -262,6 +262,14 @@ export default function SmartMeterPage() {
                         </div>
                     </div>
                 )}
+
+                {/* ✅ بصمة المطور وحفظ الحقوق */}
+                <div className="mt-16 mb-4 text-center opacity-50 hover:opacity-100 transition-opacity duration-300">
+                    <p className="text-[10px] text-zinc-500 tracking-[0.2em] uppercase font-medium" dir="ltr">
+                        Developed by <span className="text-blue-500 font-bold">Mashhoor Alabbas</span>
+                    </p>
+                </div>
+
             </div>
         </main>
     );
