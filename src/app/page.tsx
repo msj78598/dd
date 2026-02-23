@@ -13,12 +13,16 @@ export default function SmartMeterPage() {
 
     const startLive = async () => {
         try {
-            const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" }, audio: true });
+            const stream = await navigator.mediaDevices.getUserMedia({
+                video: { facingMode: "environment" },
+                audio: true
+            });
             if (videoRef.current) {
                 videoRef.current.srcObject = stream;
                 setCameraActive(true);
+                // ملاحظة: هنا يجب ربط الـ Stream مع Gemini Multimodal Live API في مرحلة لاحقة
             }
-        } catch (err) { alert("يرجى تفعيل الكاميرا من إعدادات المتصفح."); }
+        } catch (err) { alert("يرجى تفعيل صلاحيات الكاميرا."); }
     };
 
     const onSelectFile = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -31,48 +35,46 @@ export default function SmartMeterPage() {
     };
 
     return (
-        <main className="min-h-screen bg-[#050505] text-white p-5 font-sans rtl" dir="rtl">
+        <main className="min-h-screen bg-[#050505] text-white p-6 font-sans rtl" dir="rtl">
             <div className="max-w-xl mx-auto">
-                {/* Header */}
                 <div className="flex items-center justify-between mb-8 border-b border-zinc-800 pb-5">
                     <div className="flex items-center gap-3">
-                        <div className="bg-blue-600 p-2 rounded-xl shadow-lg"><Zap size={22} fill="white" /></div>
-                        <h1 className="text-xl font-black">SUPERVISOR AI 4.5</h1>
+                        <div className="bg-blue-600 p-2 rounded-xl shadow-lg shadow-blue-900/40"><Zap size={22} fill="white" /></div>
+                        <h1 className="text-xl font-black">SUPERVISOR AI v4.6</h1>
                     </div>
                     <ShieldCheck className="text-zinc-700" size={24} />
                 </div>
 
-                {/* Tabs Control */}
                 <div className="flex p-1 bg-zinc-900 rounded-[1.8rem] border border-zinc-800 mb-8">
-                    <button onClick={() => { setActiveTab("photo"); setCameraActive(false); }} className={`flex-1 py-4 rounded-[1.5rem] font-bold text-sm flex items-center justify-center gap-2 ${activeTab === "photo" ? "bg-blue-600" : "text-zinc-500"}`}><Scan size={18} /> صور</button>
-                    <button onClick={() => { setActiveTab("live"); resetAnalysis(); }} className={`flex-1 py-4 rounded-[1.5rem] font-bold text-sm flex items-center justify-center gap-2 ${activeTab === "live" ? "bg-red-600" : "text-zinc-500"}`}><Video size={18} /> بث مباشر</button>
+                    <button onClick={() => { setActiveTab("photo"); setCameraActive(false); }} className={`flex-1 py-4 rounded-[1.5rem] font-bold text-sm flex items-center justify-center gap-2 ${activeTab === "photo" ? "bg-blue-600 shadow-md" : "text-zinc-500"}`}><Scan size={18} /> صور</button>
+                    <button onClick={() => { setActiveTab("live"); resetAnalysis(); }} className={`flex-1 py-4 rounded-[1.5rem] font-bold text-sm flex items-center justify-center gap-2 ${activeTab === "live" ? "bg-red-600 shadow-md" : "text-zinc-500"}`}><Video size={18} /> بث مباشر</button>
                 </div>
 
-                {/* Unified Frame */}
                 <div className="relative aspect-[3/4] w-full bg-zinc-900 border-2 border-zinc-800 rounded-[2.5rem] overflow-hidden shadow-2xl mb-8">
                     {activeTab === "photo" ? (
-                        preview ? <img src={preview} className="w-full h-full object-cover" alt="Meter" /> :
-                            <label className="flex flex-col items-center justify-center h-full cursor-pointer"><Upload size={48} className="text-blue-500 mb-4" /><span className="text-zinc-500 font-bold">ارفع صورة العداد</span><input type="file" onChange={onSelectFile} className="hidden" /></label>
+                        preview ? <img src={preview} className="w-full h-full object-cover animate-in fade-in" alt="Meter" /> :
+                            <label className="flex flex-col items-center justify-center h-full cursor-pointer"><Upload size={48} className="text-blue-500 mb-4" /><span className="text-zinc-500 font-bold">ارفع صورة العداد للتدقيق</span><input type="file" onChange={onSelectFile} className="hidden" /></label>
                     ) : (
                         <div className="w-full h-full bg-black flex items-center justify-center">
                             <video ref={videoRef} autoPlay playsInline className="w-full h-full object-cover" />
-                            {!cameraActive && <button onClick={startLive} className="absolute bg-red-600 px-8 py-4 rounded-2xl font-bold flex items-center gap-2 shadow-2xl"><Camera size={20} /> تفعيل المفتش المباشر</button>}
+                            {!cameraActive && <button onClick={startLive} className="absolute bg-red-600 px-8 py-4 rounded-2xl font-bold flex items-center gap-2 shadow-2xl active:scale-95 transition-transform"><Camera size={20} /> تفعيل المفتش المباشر</button>}
                         </div>
                     )}
                 </div>
 
-                {/* Action Button */}
                 {activeTab === "photo" && preview && !result && (
-                    <button onClick={() => selectedFile && analyzeImage(selectedFile)} disabled={loading} className="w-full py-6 bg-blue-600 rounded-2xl font-black text-sm flex items-center justify-center gap-3 active:scale-95 transition-all">
-                        {loading ? <RefreshCw className="animate-spin" /> : <Play fill="white" />} {loading ? "جارِ الفحص الفني..." : "بـدء الـتـحـلـيـل الـفـنـي"}
+                    <button onClick={() => selectedFile && analyzeImage(selectedFile)} disabled={loading} className="w-full py-6 bg-blue-600 rounded-3xl font-black text-sm flex items-center justify-center gap-3 active:scale-95 transition-all shadow-[0_10px_30px_rgba(37,99,235,0.3)] disabled:opacity-50">
+                        {loading ? <RefreshCw className="animate-spin" size={20} /> : <Play size={20} fill="white" />}
+                        {loading ? "جارِ الفحص الهندسي..." : "بـدء الـتـحـلـيـل الـفـنـي"}
                     </button>
                 )}
 
-                {/* Result Area */}
                 {result && (
-                    <div className="bg-zinc-900 p-8 rounded-[2rem] border-t-4 border-blue-600 animate-in slide-in-from-bottom-5">
-                        <h3 className="text-blue-500 font-black text-xs uppercase mb-4 tracking-widest">Audit Report</h3>
-                        <p className="text-sm leading-relaxed text-zinc-300 whitespace-pre-wrap">{result}</p>
+                    <div className="bg-zinc-900 p-8 rounded-[2.5rem] border-t-4 border-blue-600 animate-in slide-in-from-bottom-8">
+                        <div className="flex items-center gap-2 mb-4 text-blue-500 font-black text-[10px] uppercase tracking-widest">
+                            <ShieldCheck size={14} /> التقرير الفني المعتمد
+                        </div>
+                        <p className="text-sm leading-relaxed text-zinc-300 whitespace-pre-wrap font-medium">{result}</p>
                     </div>
                 )}
             </div>
