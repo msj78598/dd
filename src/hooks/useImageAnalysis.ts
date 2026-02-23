@@ -4,6 +4,9 @@ export const useImageAnalysis = () => {
     const [loading, setLoading] = useState(false);
     const [result, setResult] = useState<string | null>(null);
 
+    // هذه هي الدالة التي كانت مفقودة وسببت الخطأ!
+    const resetAnalysis = () => setResult(null);
+
     const analyzeImage = async (imageFile: File) => {
         setLoading(true);
         setResult(null);
@@ -11,16 +14,17 @@ export const useImageAnalysis = () => {
         const apiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY;
 
         if (!apiKey) {
-            setResult("خطأ: مفتاح API غير موجود.");
+            setResult("❌ خطأ: مفتاح API غير موجود.");
             setLoading(false);
             return;
         }
 
-        const prompt = `أنت مهندس تدقيق كهربائي. حلل صورة العداد: 
-    1. القراءات والشاشة.
-    2. تسلسل الفازات (أحمر، أصفر، أزرق).
-    3. سلامة القاطع والتوصيلات.
-    أعطني تقريراً مباشراً.`;
+        const prompt = `أنت مهندس تدقيق كهربائي خبير في مشروع Smart Meter AI Supervisor. حلل صورة العداد هذه بدقة:
+    1. شاشة العداد: استخرج القراءات وأي رموز خطأ.
+    2. التوصيلات: دقق في تسلسل الفازات (R-Y-B) وسلامة الربط.
+    3. الفحص الإنشائي: رصد آثار حرارة أو تفحم.
+    4. القاطع: تحقق من وضعية المفتاح.
+    قدم تقريراً فنياً نقاطياً ومباشراً باللغة العربية.`;
 
         try {
             const reader = new FileReader();
@@ -28,7 +32,7 @@ export const useImageAnalysis = () => {
             reader.onloadend = async () => {
                 const base64Data = (reader.result as string).split(',')[1];
 
-                // تم وضع الرابط والنموذج الذي طلبته بالنص هنا
+                // استخدام الموديل gemini-2.5-flash الذي حددته بالنص
                 const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`, {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
@@ -40,19 +44,26 @@ export const useImageAnalysis = () => {
                 const data = await response.json();
 
                 if (data.error) {
-                    setResult(`رسالة من السيرفر: ${data.error.message}`);
+                    setResult(`❌ رسالة من السيرفر: ${data.error.message}`);
                 } else if (data.candidates && data.candidates[0]) {
-                    setResult(data.candidates[0].content.parts[0].text);
+                    const text = data.candidates[0].content.parts[0].text;
+                    setResult(text);
+
+                    // نطق التقرير آلياً
+                    const utterance = new SpeechSynthesisUtterance(text);
+                    utterance.lang = 'ar-SA';
+                    window.speechSynthesis.speak(utterance);
                 } else {
-                    setResult("حدث خطأ في تحليل الصورة من قبل السيرفر.");
+                    setResult("⚠️ تعذر استخلاص البيانات. حاول التقاط صورة أوضح.");
                 }
                 setLoading(false);
             };
         } catch (error) {
-            setResult("فشل الاتصال بالسيرفر.");
+            setResult("❌ فشل الاتصال بالسيرفر.");
             setLoading(false);
         }
     };
 
-    return { analyzeImage, loading, result };
+    // الآن الدالة resetAnalysis موجودة ولن يظهر الخطأ
+    return { analyzeImage, loading, result, resetAnalysis };
 };
