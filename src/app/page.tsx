@@ -1,15 +1,22 @@
 "use client";
 import { useState, useRef, useEffect } from "react";
 import { useImageAnalysis } from "@/hooks/useImageAnalysis";
-import { Scan, Video, Upload, Play, RefreshCw, Zap, ShieldCheck, Share2, PlusCircle } from "lucide-react";
+import { Scan, Video, Upload, Play, RefreshCw, Zap, ShieldCheck, Share2, PlusCircle, Layers, CheckSquare } from "lucide-react";
 import { Camera } from "lucide-react";
 
 export default function SmartMeterPage() {
-    const [activeTab, setActiveTab] = useState<"photo" | "live">("photo");
+    // ✅ إضافة التبويب الثالث "deep" للفحص الدقيق
+    const [activeTab, setActiveTab] = useState<"photo" | "live" | "deep">("photo");
     const { analyzeImage, loading, result, resetAnalysis } = useImageAnalysis();
+
     const [preview, setPreview] = useState<string | null>(null);
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
-    const [currentFile, setCurrentFile] = useState<File | null>(null); // ✅ حالة جديدة لحفظ الصورة للمشاركة
+    const [currentFile, setCurrentFile] = useState<File | null>(null);
+
+    // ✅ حالات جديدة لإدارة الصور المتعددة في الفحص الدقيق
+    const [multipleFiles, setMultipleFiles] = useState<File[]>([]);
+    const [multiplePreviews, setMultiplePreviews] = useState<string[]>([]);
+
     const videoRef = useRef<HTMLVideoElement>(null);
     const [cameraActive, setCameraActive] = useState(false);
 
@@ -24,13 +31,12 @@ export default function SmartMeterPage() {
         setCameraActive(false);
     };
 
-    const handleTabSwitch = (tab: "photo" | "live") => {
+    const handleTabSwitch = (tab: "photo" | "live" | "deep") => {
         setActiveTab(tab);
-        if (tab === "photo") {
+        if (tab !== "live") {
             stopCamera();
-        } else {
-            resetAnalysis();
         }
+        resetAnalysis();
     };
 
     const startLive = async () => {
@@ -59,7 +65,7 @@ export default function SmartMeterPage() {
                 canvas.toBlob((blob) => {
                     if (blob) {
                         const file = new File([blob], "live-frame.jpg", { type: "image/jpeg" });
-                        setCurrentFile(file); // ✅ حفظ اللقطة المباشرة للمشاركة
+                        setCurrentFile(file);
                         analyzeImage(file);
                     }
                 }, "image/jpeg", 0.8);
@@ -71,20 +77,19 @@ export default function SmartMeterPage() {
         setPreview(null);
         setSelectedFile(null);
         setCurrentFile(null);
+        setMultipleFiles([]);
+        setMultiplePreviews([]);
         resetAnalysis();
     };
 
-    // ✅ دالة المشاركة الاحترافية (صورة + تاريخ ديناميكي + نص مرتب)
     const handleShare = async () => {
         if (!result) return;
 
-        // توليد التاريخ والوقت الحالي لحظة الضغط على زر المشاركة
         const currentDate = new Date().toLocaleString('ar-SA', {
             year: 'numeric', month: '2-digit', day: '2-digit',
             hour: '2-digit', minute: '2-digit'
         });
 
-        // تنسيق التقرير ليكون مرتباً في الواتساب
         const shareText = `📋 *تـقـريـر فـحـص مـيـدانـي*\n`
             + `ــــــــــــــــــــــــــــــــــــــــ\n`
             + `📅 *التاريخ والوقت:* ${currentDate}\n\n`
@@ -93,7 +98,6 @@ export default function SmartMeterPage() {
             + `✅ *Smart Meter AI Supervisor*`;
 
         try {
-            // محاولة إرسال الصورة مع النص (إذا كان المتصفح يدعم ذلك)
             if (navigator.canShare && currentFile && navigator.canShare({ files: [currentFile] })) {
                 await navigator.share({
                     files: [currentFile],
@@ -101,14 +105,12 @@ export default function SmartMeterPage() {
                     text: shareText
                 });
             }
-            // إذا لم يدعم إرسال الصورة، يرسل النص المنسق فقط
             else if (navigator.share) {
                 await navigator.share({
                     title: 'تقرير فحص العداد',
                     text: shareText
                 });
             }
-            // البديل للأجهزة القديمة
             else {
                 const encodedText = encodeURIComponent(shareText);
                 window.open(`https://wa.me/?text=${encodedText}`, '_blank');
@@ -122,8 +124,19 @@ export default function SmartMeterPage() {
         const file = e.target.files?.[0];
         if (file) {
             setSelectedFile(file);
-            setCurrentFile(file); // ✅ حفظ الصورة المرفوعة للمشاركة
+            setCurrentFile(file);
             setPreview(URL.createObjectURL(file));
+            resetAnalysis();
+        }
+    };
+
+    // ✅ دالة جديدة لاختيار عدة صور لتبويب الفحص الدقيق
+    const onSelectMultipleFiles = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const files = Array.from(e.target.files || []);
+        if (files.length > 0) {
+            setMultipleFiles(files);
+            setMultiplePreviews(files.map(f => URL.createObjectURL(f)));
+            setCurrentFile(files[0]); // تعيين الصورة الأولى للمشاركة
             resetAnalysis();
         }
     };
@@ -134,22 +147,26 @@ export default function SmartMeterPage() {
                 <div className="flex items-center justify-between mb-8 border-b border-zinc-800 pb-5">
                     <div className="flex items-center gap-3">
                         <div className="bg-blue-600 p-2 rounded-xl shadow-lg"><Zap size={22} fill="white" /></div>
-                        <h1 className="text-xl font-black uppercase tracking-tighter">Supervisor AI v4.8</h1>
+                        <h1 className="text-xl font-black uppercase tracking-tighter">Supervisor AI v5.0</h1>
                     </div>
                     <ShieldCheck className="text-zinc-700" size={24} />
                 </div>
 
+                {/* ✅ تم تحديث الأزرار لتشمل 3 خيارات */}
                 <div className="flex p-1 bg-zinc-900 rounded-[1.8rem] border border-zinc-800 mb-8">
-                    <button onClick={() => handleTabSwitch("photo")} className={`flex-1 py-4 rounded-[1.5rem] font-bold text-sm flex items-center justify-center gap-2 transition-all ${activeTab === "photo" ? "bg-blue-600 shadow-lg" : "text-zinc-500"}`}><Scan size={18} /> صور</button>
-                    <button onClick={() => handleTabSwitch("live")} className={`flex-1 py-4 rounded-[1.5rem] font-bold text-sm flex items-center justify-center gap-2 transition-all ${activeTab === "live" ? "bg-red-600 shadow-lg" : "text-zinc-500"}`}><Video size={18} /> بث مباشر</button>
+                    <button onClick={() => handleTabSwitch("photo")} className={`flex-1 py-4 rounded-[1.5rem] font-bold text-sm flex items-center justify-center gap-2 transition-all ${activeTab === "photo" ? "bg-blue-600 shadow-lg" : "text-zinc-500"}`}><Scan size={18} /> سريع</button>
+                    <button onClick={() => handleTabSwitch("live")} className={`flex-1 py-4 rounded-[1.5rem] font-bold text-sm flex items-center justify-center gap-2 transition-all ${activeTab === "live" ? "bg-red-600 shadow-lg" : "text-zinc-500"}`}><Video size={18} /> مباشر</button>
+                    <button onClick={() => handleTabSwitch("deep")} className={`flex-1 py-4 rounded-[1.5rem] font-bold text-sm flex items-center justify-center gap-2 transition-all ${activeTab === "deep" ? "bg-emerald-600 shadow-lg text-white" : "text-zinc-500"}`}><Layers size={18} /> دقيق</button>
                 </div>
 
-                <div className="relative aspect-[3/4] w-full bg-zinc-900 border-2 border-zinc-800 rounded-[2.5rem] overflow-hidden shadow-2xl mb-8">
-                    {activeTab === "photo" ? (
-                        preview ? <img src={preview} className="w-full h-full object-cover" alt="Meter" /> :
-                            <label className="flex flex-col items-center justify-center h-full cursor-pointer hover:bg-zinc-800/50 transition-colors"><Upload size={48} className="text-blue-500 mb-4 animate-bounce" /><span className="text-zinc-500 font-bold">ارفع صورة العداد للتدقيق</span><input type="file" onChange={onSelectFile} className="hidden" /></label>
-                    ) : (
-                        <div className="w-full h-full bg-black flex items-center justify-center relative">
+                <div className="relative aspect-[3/4] w-full bg-zinc-900 border-2 border-zinc-800 rounded-[2.5rem] overflow-hidden shadow-2xl mb-8 p-2">
+                    {activeTab === "photo" && (
+                        preview ? <img src={preview} className="w-full h-full object-cover rounded-[2rem]" alt="Meter" /> :
+                            <label className="flex flex-col items-center justify-center h-full cursor-pointer hover:bg-zinc-800/50 transition-colors rounded-[2rem]"><Upload size={48} className="text-blue-500 mb-4 animate-bounce" /><span className="text-zinc-500 font-bold">ارفع صورة العداد للتدقيق</span><input type="file" onChange={onSelectFile} className="hidden" /></label>
+                    )}
+
+                    {activeTab === "live" && (
+                        <div className="w-full h-full bg-black flex items-center justify-center relative rounded-[2rem] overflow-hidden">
                             <video ref={videoRef} autoPlay playsInline muted className="w-full h-full object-cover" />
 
                             {!cameraActive && <button onClick={startLive} className="absolute bg-red-600 px-8 py-4 rounded-2xl font-bold flex items-center gap-2 shadow-2xl active:scale-95 transition-all"><Camera size={20} /> تفعيل المفتش المباشر</button>}
@@ -170,18 +187,43 @@ export default function SmartMeterPage() {
                             )}
                         </div>
                     )}
+
+                    {/* ✅ التبويب الجديد: منطقة الرفع المتعدد */}
+                    {activeTab === "deep" && (
+                        multiplePreviews.length > 0 ? (
+                            <div className="w-full h-full overflow-y-auto p-2 grid grid-cols-2 gap-2 content-start">
+                                {multiplePreviews.map((src, idx) => (
+                                    <img key={idx} src={src} className="w-full h-32 object-cover rounded-xl border border-zinc-700" alt={`Scan ${idx + 1}`} />
+                                ))}
+                            </div>
+                        ) : (
+                            <label className="flex flex-col items-center justify-center h-full cursor-pointer hover:bg-zinc-800/50 rounded-[2rem] transition-colors text-center px-6">
+                                <CheckSquare size={48} className="text-emerald-500 mb-4 animate-pulse" />
+                                <span className="text-emerald-500 font-bold mb-2">الفحص الشامل والمطابقة</span>
+                                <span className="text-zinc-500 text-xs">حدد عدة صور معاً (للصندوق، القاطع، शاشات التيار، والكلامب ميتر)</span>
+                                <input type="file" multiple onChange={onSelectMultipleFiles} className="hidden" />
+                            </label>
+                        )
+                    )}
                 </div>
 
+                {/* ✅ أزرار التحليل حسب التبويب */}
                 {activeTab === "photo" && preview && !result && (
-                    <button onClick={() => selectedFile && analyzeImage(selectedFile)} disabled={loading} className="w-full py-6 bg-blue-600 rounded-3xl font-black text-sm flex items-center justify-center gap-3 active:scale-95 transition-all shadow-xl disabled:opacity-50">
-                        {loading ? <RefreshCw className="animate-spin" /> : <Play fill="white" />} {loading ? "جارِ الفحص الهندسي..." : "بـدء الـتـحـلـيـل الـفـنـي"}
+                    <button onClick={() => selectedFile && analyzeImage(selectedFile as any)} disabled={loading} className="w-full py-6 bg-blue-600 rounded-3xl font-black text-sm flex items-center justify-center gap-3 active:scale-95 transition-all shadow-xl disabled:opacity-50">
+                        {loading ? <RefreshCw className="animate-spin" /> : <Play fill="white" />} {loading ? "جارِ الفحص السريع..." : "بـدء الـتـحـلـيـل الـسـريـع"}
+                    </button>
+                )}
+
+                {activeTab === "deep" && multipleFiles.length > 0 && !result && (
+                    <button onClick={() => analyzeImage(multipleFiles as any)} disabled={loading} className="w-full py-6 bg-emerald-600 rounded-3xl font-black text-sm flex items-center justify-center gap-3 active:scale-95 transition-all shadow-xl disabled:opacity-50">
+                        {loading ? <RefreshCw className="animate-spin" /> : <Layers fill="white" />} {loading ? "جارِ المطابقة الهندسية..." : `تدقيق شامل لـ (${multipleFiles.length}) صور`}
                     </button>
                 )}
 
                 {result && (
                     <div className="space-y-4 animate-in slide-in-from-bottom-5">
-                        <div className="bg-zinc-900 p-8 rounded-[2rem] border-t-4 border-blue-600 shadow-2xl">
-                            <h3 className="text-blue-500 font-black text-[10px] uppercase mb-4 tracking-widest">التقرير الفني المعتمد</h3>
+                        <div className={`bg-zinc-900 p-8 rounded-[2rem] border-t-4 shadow-2xl ${activeTab === "deep" ? "border-emerald-600" : "border-blue-600"}`}>
+                            <h3 className={`font-black text-[10px] uppercase mb-4 tracking-widest ${activeTab === "deep" ? "text-emerald-500" : "text-blue-500"}`}>التقرير الفني المعتمد</h3>
                             <p className="text-sm leading-relaxed text-zinc-300 whitespace-pre-wrap font-medium">{result}</p>
                         </div>
 
