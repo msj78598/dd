@@ -18,50 +18,60 @@ export default function SmartMeterPage() {
                 videoRef.current.srcObject = stream;
                 setCameraActive(true);
             }
-        } catch (err) { alert("يجب السماح بالوصول للكاميرا"); }
+        } catch (err) { alert("يرجى تفعيل الكاميرا من إعدادات المتصفح."); }
+    };
+
+    const onSelectFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (file) {
+            setSelectedFile(file);
+            setPreview(URL.createObjectURL(file));
+            resetAnalysis();
+        }
     };
 
     return (
         <main className="min-h-screen bg-[#050505] text-white p-5 font-sans rtl" dir="rtl">
             <div className="max-w-xl mx-auto">
-                <div className="flex items-center justify-between mb-10 border-b border-zinc-800 pb-5">
+                {/* Header */}
+                <div className="flex items-center justify-between mb-8 border-b border-zinc-800 pb-5">
                     <div className="flex items-center gap-3">
                         <div className="bg-blue-600 p-2 rounded-xl shadow-lg"><Zap size={22} fill="white" /></div>
-                        <h1 className="text-xl font-black tracking-tight">SUPERVISOR AI</h1>
+                        <h1 className="text-xl font-black">SUPERVISOR AI 4.5</h1>
                     </div>
                     <ShieldCheck className="text-zinc-700" size={24} />
                 </div>
 
-                {/* مبدل التبويبات */}
+                {/* Tabs Control */}
                 <div className="flex p-1 bg-zinc-900 rounded-[1.8rem] border border-zinc-800 mb-8">
                     <button onClick={() => { setActiveTab("photo"); setCameraActive(false); }} className={`flex-1 py-4 rounded-[1.5rem] font-bold text-sm flex items-center justify-center gap-2 ${activeTab === "photo" ? "bg-blue-600" : "text-zinc-500"}`}><Scan size={18} /> صور</button>
                     <button onClick={() => { setActiveTab("live"); resetAnalysis(); }} className={`flex-1 py-4 rounded-[1.5rem] font-bold text-sm flex items-center justify-center gap-2 ${activeTab === "live" ? "bg-red-600" : "text-zinc-500"}`}><Video size={18} /> بث مباشر</button>
                 </div>
 
-                {/* الإطار التقني الموحد */}
+                {/* Unified Frame */}
                 <div className="relative aspect-[3/4] w-full bg-zinc-900 border-2 border-zinc-800 rounded-[2.5rem] overflow-hidden shadow-2xl mb-8">
                     {activeTab === "photo" ? (
-                        preview ? <img src={preview} className="w-full h-full object-cover" /> :
-                            <label className="flex flex-col items-center justify-center h-full cursor-pointer"><Upload size={48} className="text-blue-500 mb-4" /><span className="text-zinc-500 font-bold text-sm">ارفع صورة العداد</span><input type="file" onChange={(e) => { const f = e.target.files?.[0]; if (f) { setSelectedFile(f); setPreview(URL.createObjectURL(f)); resetAnalysis(); } }} className="hidden" /></label>
+                        preview ? <img src={preview} className="w-full h-full object-cover" alt="Meter" /> :
+                            <label className="flex flex-col items-center justify-center h-full cursor-pointer"><Upload size={48} className="text-blue-500 mb-4" /><span className="text-zinc-500 font-bold">ارفع صورة العداد</span><input type="file" onChange={onSelectFile} className="hidden" /></label>
                     ) : (
                         <div className="w-full h-full bg-black flex items-center justify-center">
                             <video ref={videoRef} autoPlay playsInline className="w-full h-full object-cover" />
-                            {!cameraActive && <button onClick={startCamera} className="absolute bg-red-600 px-6 py-3 rounded-2xl font-bold flex items-center gap-2 shadow-xl"><Camera size={20} /> تشغيل المفتش المباشر</button>}
+                            {!cameraActive && <button onClick={startLive} className="absolute bg-red-600 px-8 py-4 rounded-2xl font-bold flex items-center gap-2 shadow-2xl"><Camera size={20} /> تفعيل المفتش المباشر</button>}
                         </div>
                     )}
                 </div>
 
-                {/* أزرار التحكم */}
+                {/* Action Button */}
                 {activeTab === "photo" && preview && !result && (
                     <button onClick={() => selectedFile && analyzeImage(selectedFile)} disabled={loading} className="w-full py-6 bg-blue-600 rounded-2xl font-black text-sm flex items-center justify-center gap-3 active:scale-95 transition-all">
-                        {loading ? <RefreshCw className="animate-spin" /> : <Play fill="white" />} {loading ? "جارِ التحليل الفني..." : "بـدء الـتـحـلـيـل الـفـنـي"}
+                        {loading ? <RefreshCw className="animate-spin" /> : <Play fill="white" />} {loading ? "جارِ الفحص الفني..." : "بـدء الـتـحـلـيـل الـفـنـي"}
                     </button>
                 )}
 
-                {/* النتائج */}
+                {/* Result Area */}
                 {result && (
-                    <div className="bg-zinc-900 p-8 rounded-[2rem] border-t-4 border-blue-600 animate-in slide-in-from-bottom-4">
-                        <h3 className="text-blue-500 font-black text-xs uppercase mb-4 tracking-widest">نتائج التدقيق الفني</h3>
+                    <div className="bg-zinc-900 p-8 rounded-[2rem] border-t-4 border-blue-600 animate-in slide-in-from-bottom-5">
+                        <h3 className="text-blue-500 font-black text-xs uppercase mb-4 tracking-widest">Audit Report</h3>
                         <p className="text-sm leading-relaxed text-zinc-300 whitespace-pre-wrap">{result}</p>
                     </div>
                 )}
