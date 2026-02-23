@@ -9,6 +9,7 @@ export default function SmartMeterPage() {
     const { analyzeImage, loading, result, resetAnalysis } = useImageAnalysis();
     const [preview, setPreview] = useState<string | null>(null);
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
+    const [currentFile, setCurrentFile] = useState<File | null>(null); // ✅ حالة جديدة لحفظ الصورة للمشاركة
     const videoRef = useRef<HTMLVideoElement>(null);
     const [cameraActive, setCameraActive] = useState(false);
 
@@ -58,6 +59,7 @@ export default function SmartMeterPage() {
                 canvas.toBlob((blob) => {
                     if (blob) {
                         const file = new File([blob], "live-frame.jpg", { type: "image/jpeg" });
+                        setCurrentFile(file); // ✅ حفظ اللقطة المباشرة للمشاركة
                         analyzeImage(file);
                     }
                 }, "image/jpeg", 0.8);
@@ -65,27 +67,50 @@ export default function SmartMeterPage() {
         }
     };
 
-    // ✅ دالة بدء فحص جديد (تصفير النظام بدون تحديث الصفحة)
     const handleNewInspection = () => {
         setPreview(null);
         setSelectedFile(null);
+        setCurrentFile(null);
         resetAnalysis();
     };
 
-    // ✅ دالة المشاركة (تفتح خيارات الجوال: واتساب، إيميل، الخ)
+    // ✅ دالة المشاركة الاحترافية (صورة + تاريخ ديناميكي + نص مرتب)
     const handleShare = async () => {
         if (!result) return;
 
-        const shareData = {
-            title: 'تقرير فحص العداد - Smart Meter AI',
-            text: `📋 *تقرير فحص ميداني - المفتش الذكي*\n\n${result}\n\n- تم الفحص بواسطة نظام Smart Meter AI Supervisor`,
-        };
+        // توليد التاريخ والوقت الحالي لحظة الضغط على زر المشاركة
+        const currentDate = new Date().toLocaleString('ar-SA', {
+            year: 'numeric', month: '2-digit', day: '2-digit',
+            hour: '2-digit', minute: '2-digit'
+        });
+
+        // تنسيق التقرير ليكون مرتباً في الواتساب
+        const shareText = `📋 *تـقـريـر فـحـص مـيـدانـي*\n`
+            + `ــــــــــــــــــــــــــــــــــــــــ\n`
+            + `📅 *التاريخ والوقت:* ${currentDate}\n\n`
+            + `🔍 *النتائج الفنية:*\n${result}\n\n`
+            + `ــــــــــــــــــــــــــــــــــــــــ\n`
+            + `✅ *Smart Meter AI Supervisor*`;
 
         try {
-            if (navigator.share) {
-                await navigator.share(shareData);
-            } else {
-                const encodedText = encodeURIComponent(shareData.text);
+            // محاولة إرسال الصورة مع النص (إذا كان المتصفح يدعم ذلك)
+            if (navigator.canShare && currentFile && navigator.canShare({ files: [currentFile] })) {
+                await navigator.share({
+                    files: [currentFile],
+                    title: 'تقرير فحص العداد',
+                    text: shareText
+                });
+            }
+            // إذا لم يدعم إرسال الصورة، يرسل النص المنسق فقط
+            else if (navigator.share) {
+                await navigator.share({
+                    title: 'تقرير فحص العداد',
+                    text: shareText
+                });
+            }
+            // البديل للأجهزة القديمة
+            else {
+                const encodedText = encodeURIComponent(shareText);
                 window.open(`https://wa.me/?text=${encodedText}`, '_blank');
             }
         } catch (err) {
@@ -97,6 +122,7 @@ export default function SmartMeterPage() {
         const file = e.target.files?.[0];
         if (file) {
             setSelectedFile(file);
+            setCurrentFile(file); // ✅ حفظ الصورة المرفوعة للمشاركة
             setPreview(URL.createObjectURL(file));
             resetAnalysis();
         }
@@ -108,7 +134,7 @@ export default function SmartMeterPage() {
                 <div className="flex items-center justify-between mb-8 border-b border-zinc-800 pb-5">
                     <div className="flex items-center gap-3">
                         <div className="bg-blue-600 p-2 rounded-xl shadow-lg"><Zap size={22} fill="white" /></div>
-                        <h1 className="text-xl font-black uppercase tracking-tighter">Supervisor AI v4.7</h1>
+                        <h1 className="text-xl font-black uppercase tracking-tighter">Supervisor AI v4.8</h1>
                     </div>
                     <ShieldCheck className="text-zinc-700" size={24} />
                 </div>
@@ -128,7 +154,6 @@ export default function SmartMeterPage() {
 
                             {!cameraActive && <button onClick={startLive} className="absolute bg-red-600 px-8 py-4 rounded-2xl font-bold flex items-center gap-2 shadow-2xl active:scale-95 transition-all"><Camera size={20} /> تفعيل المفتش المباشر</button>}
 
-                            {/* ✅ زر التقاط يدوي يظهر عند تشغيل الكاميرا بدلاً من التحديث التلقائي */}
                             {cameraActive && !loading && !result && (
                                 <div className="absolute bottom-8 left-1/2 -translate-x-1/2 w-full px-8">
                                     <button onClick={captureAndAnalyze} className="w-full bg-blue-600 hover:bg-blue-500 text-white px-6 py-4 rounded-2xl font-black flex items-center justify-center gap-2 shadow-[0_10px_30px_rgba(37,99,235,0.4)] active:scale-95 transition-all">
@@ -153,7 +178,6 @@ export default function SmartMeterPage() {
                     </button>
                 )}
 
-                {/* ✅ منطقة النتائج والأزرار الجديدة */}
                 {result && (
                     <div className="space-y-4 animate-in slide-in-from-bottom-5">
                         <div className="bg-zinc-900 p-8 rounded-[2rem] border-t-4 border-blue-600 shadow-2xl">
@@ -163,7 +187,7 @@ export default function SmartMeterPage() {
 
                         <div className="flex gap-3">
                             <button onClick={handleShare} className="flex-1 bg-green-600 hover:bg-green-500 py-4 rounded-2xl font-bold text-sm flex items-center justify-center gap-2 active:scale-95 transition-all shadow-lg">
-                                <Share2 size={18} /> مشاركة
+                                <Share2 size={18} /> مشاركة التقرير
                             </button>
 
                             <button onClick={handleNewInspection} className="flex-1 bg-zinc-800 hover:bg-zinc-700 py-4 rounded-2xl font-bold text-sm flex items-center justify-center gap-2 active:scale-95 transition-all shadow-lg">
