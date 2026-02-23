@@ -1,29 +1,37 @@
 @import "tailwindcss";
 
 :root {
-  --background: #000000;
+  --background: #050505;
   --foreground: #ffffff;
 }
 
 body {
   background-color: var(--background);
   color: var(--foreground);
+  /* حماية العناصر من الاختفاء تحت نوتش الجوال */
   padding-top: env(safe-area-inset-top);
   padding-bottom: env(safe-area-inset-bottom);
   user-select: none;
-  overflow-x: hidden;
+  -webkit-tap-highlight-color: transparent;
 }
 
+/* تحسين تجربة الضغط الميداني */
 button {
-  touch-action: manipulation;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  touch-action: manipulation;
 }
 
 button:active {
-  transform: scale(0.96);
-  opacity: 0.9;
+  transform: scale(0.95);
 }
 
-.rtl {
-  direction: rtl;
+/* تباين عالي للقراءة تحت الشمس */
+.report-text {
+  line-height: 1.7;
+  letter-spacing: -0.01em;
+}
+
+::selection {
+  background: #2563eb;
+  color: white;
 }
