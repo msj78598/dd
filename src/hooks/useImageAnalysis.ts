@@ -8,15 +8,14 @@ export const useImageAnalysis = () => {
 
     const analyzeImage = async (imageFile: File) => {
         setLoading(true);
+        // تذكر: يجب تعديل الاسم في Vercel أولاً
         const apiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY;
 
-        // تعليمات الخبير الفني لشركة الكهرباء
-        const prompt = `بصفتك مهندس تدقيق جودة، حلل صورة العداد هذه بدقة هندسية:
-    1. شاشة العداد: استخرج القراءات ورموز الخطأ وحالة الاتصال.
-    2. التوصيلات: دقق في تسلسل الفازات (أحمر، أصفر، أزرق) وسلامة الربط.
-    3. القاطع: تحقق من وضعيته وسلامته الفيزيائية.
-    4. الملاحظات: رصد أي تلاعب أو آثار حرارة أو رطوبة.
-    تحدث بلهجة فنية محترفة ومباشرة.`;
+        const prompt = `أنت مهندس تدقيق كهربائي خبير. حلل الصورة المرفقة بتقرير فني شامل يغطي:
+    1. شاشة العداد: القراءات، رموز الخطأ، وحالة الاتصال بالشبكة.
+    2. التوصيلات: ترتيب الألوان (أحمر R، أصفر Y، أزرق B) ورصد أي ارتخاء.
+    3. القاطع الرئيسي: حالة وضعية المفتاح وسلامته الفيزيائية.
+    4. المخاطر: رصد آثار حرارة أو تلاعب.`;
 
         try {
             const reader = new FileReader();
@@ -26,15 +25,13 @@ export const useImageAnalysis = () => {
                 const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                        contents: [{ parts: [{ text: prompt }, { inline_data: { mime_type: "image/jpeg", data: base64Data } }] }]
-                    })
+                    body: JSON.stringify({ contents: [{ parts: [{ text: prompt }, { inline_data: { mime_type: "image/jpeg", data: base64Data } }] }] })
                 });
                 const data = await response.json();
                 setResult(data.candidates[0].content.parts[0].text);
             };
         } catch (error) {
-            setResult("خطأ: فشل محرك الذكاء الاصطناعي في الاستجابة.");
+            setResult("خطأ: فشل الاتصال بالمحرك. تأكد من تفعيل مفتاح الـ API.");
         } finally {
             setLoading(false);
         }
