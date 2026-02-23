@@ -8,7 +8,12 @@ export const useImageAnalysis = () => {
         setLoading(true);
         const apiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY;
 
-        const prompt = "أنت مهندس تدقيق كهربائي. حلل صورة العداد: استخرج الرقم اليدوي (مثل 104679)، تحقق من ترتيب الأسلاك (أحمر، أصفر، أزرق)، ورصد أي آثار حرارة أو تلاعب. قدم تقريراً فنياً موجزاً.";
+        const prompt = `أنت مهندس تدقيق كهربائي خبير. حلل الصورة بدقة هندسية:
+    1. استخرج الرقم المكتوب يدوياً (مثل 104679).
+    2. فحص التوصيلات: تحقق من ترتيب الفازات (أحمر، أصفر، أزرق) وسلامة الربط.
+    3. الاتصال: هل أيقونة الشبكة ظاهرة؟ هل توجد أكواد خطأ؟
+    4. المخاطر: رصد آثار حرارة، تلاعب، أو رطوبة.
+    قدم تقريراً فنياً نقاطياً بلهجة محترفة.`;
 
         try {
             const reader = new FileReader();
@@ -26,7 +31,7 @@ export const useImageAnalysis = () => {
                 setResult(data.candidates[0].content.parts[0].text);
             };
         } catch (error) {
-            setResult("خطأ في الاتصال بالذكاء الاصطناعي.");
+            setResult("حدث خطأ في الاتصال بالذكاء الاصطناعي.");
         } finally {
             setLoading(false);
         }
