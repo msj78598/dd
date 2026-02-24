@@ -11,7 +11,6 @@ export const useImageAnalysis = () => {
     const analyzeImage = async (imageInput: File | File[]) => {
         setLoading(true);
         setResult(null);
-        setChatHistory([]);
         const apiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY;
         const files = Array.isArray(imageInput) ? imageInput : [imageInput];
 
@@ -30,7 +29,7 @@ export const useImageAnalysis = () => {
 
             setSavedImageParts(imageParts);
 
-            // 🚀 استخدام النسخة المعتمدة Gemini 2.5 Pro (150 Quota) لتحليل دقيق وشامل
+            // 🚀 الهيكلية الصحيحة والمجربة لـ Gemini 2.5 Pro
             const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro:generateContent?key=${apiKey}`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
@@ -39,7 +38,7 @@ export const useImageAnalysis = () => {
                     contents: [
                         {
                             parts: [
-                                { text: "أصدر تقريراً فنياً دقيقاً بناءً على الصور المرفقة يوضح الحالة والبيانات الإدارية." },
+                                { text: "حلل الصور وأصدر تقريراً فنياً دقيقاً بناءً على التعليمات." },
                                 ...imageParts as any[]
                             ]
                         }
@@ -51,8 +50,7 @@ export const useImageAnalysis = () => {
                         { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_NONE" }
                     ],
                     generationConfig: {
-                        temperature: 0.1, // لضمان دقة الأرقام وعدم التخمين
-                        topP: 0.95,
+                        temperature: 0, // للوصول لأعلى دقة في قراءة الأرقام (OCR)
                         maxOutputTokens: 2048
                     }
                 })
@@ -61,22 +59,20 @@ export const useImageAnalysis = () => {
             const data = await response.json();
 
             if (data.error) {
-                setResult(`❌ خطأ من النظام: ${data.error.message}`);
+                console.error("API Error Detail:", data.error);
+                setResult(`❌ خطأ تقني: ${data.error.message}`);
                 return;
             }
 
             if (data.candidates?.[0]?.content?.parts?.[0]?.text) {
                 const text = data.candidates[0].content.parts[0].text;
                 const inspectionTime = new Date().toLocaleString('ar-SA');
-
-                // تنسيق التقرير النهائي
-                const finalReport = `🕒 وقت الفحص: ${inspectionTime}\nــــــــــــــــــــــــــــــــــــــــ\n\n${text}`;
-                setResult(finalReport);
+                setResult(`🕒 وقت الفحص: ${inspectionTime}\nــــــــــــــــــــــــــــــــــــــــ\n\n${text}`);
             } else {
-                setResult("⚠️ تعذر تحليل الحالة. تأكد من وضوح الصورة وتجربة رفع صورة واحدة في المرة الواحدة إذا استمر الخطأ.");
+                setResult("⚠️ لم يتم إصدار تقرير. تأكد من وضوح الصورة ومحتواها الكهربائي.");
             }
         } catch (error) {
-            setResult("❌ فشل الاتصال بالسيرفر. تأكد من إعدادات الـ API والإنترنت.");
+            setResult("❌ فشل الاتصال بالسيرفر. تأكد من مفتاح الـ API والإنترنت.");
         } finally {
             setLoading(false);
         }
@@ -93,14 +89,14 @@ export const useImageAnalysis = () => {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
-                    system_instruction: { role: "system", parts: [{ text: "أنت المستشار الفني. أجب باختصار هندسي حاد على استفسار الفني بناءً على الصور والتقرير السابق." }] },
+                    system_instruction: { parts: [{ text: "أنت المستشار الفني. أجب باختصار على السؤال بناءً على التقرير والصور." }] },
                     contents: [
-                        { parts: [{ text: `التقرير السابق: ${result}\nالسؤال: ${question}` }, ...savedImageParts] }
+                        { parts: [{ text: `التقرير: ${result}\nالسؤال: ${question}` }, ...savedImageParts] }
                     ]
                 })
             });
             const data = await response.json();
-            const aiReply = data.candidates?.[0]?.content.parts[0]?.text || "⚠️ لا توجد إجابة.";
+            const aiReply = data.candidates?.[0]?.content?.parts?.[0]?.text || "⚠️ لا توجد إجابة.";
             setChatHistory((prev) => [...prev, { role: "ai", text: aiReply }]);
         } catch (error) {
             setChatHistory((prev) => [...prev, { role: "ai", text: "❌ فشل الاستفسار." }]);
