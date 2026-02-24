@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { systemInstruction } from "./useGeminiLive";
+import { systemInstruction } from "./systemInstruction";
 
 export const useImageAnalysis = () => {
     const [loading, setLoading] = useState(false);
@@ -11,7 +11,6 @@ export const useImageAnalysis = () => {
     const analyzeImage = async (imageInput: File | File[]) => {
         setLoading(true);
         setResult(null);
-        setChatHistory([]);
         const apiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY;
         const files = Array.isArray(imageInput) ? imageInput : [imageInput];
 
@@ -30,8 +29,8 @@ export const useImageAnalysis = () => {
 
             setSavedImageParts(imageParts);
 
-            // 🚀 الهيكلية الصحيحة لطلب API Gemini 1.5 Pro
-            const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent?key=${apiKey}`, {
+            // 🚀 الهيكلية الصحيحة لطلب API Gemini 2.5 Pro
+            const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro:generateContent?key=${apiKey}`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
@@ -39,7 +38,7 @@ export const useImageAnalysis = () => {
                     contents: [
                         {
                             parts: [
-                                { text: "قم بإجراء الفحص الفني للصور المرفقة بناءً على التعليمات الصارمة الموجهة إليك." },
+                                { text: "أجرِ الفحص الفني والتدقيق الجنائي للصور المرفقة بناءً على التعليمات الصارمة الموجهة إليك." },
                                 ...imageParts as any[]
                             ]
                         }
@@ -51,7 +50,7 @@ export const useImageAnalysis = () => {
                         { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_NONE" }
                     ],
                     generationConfig: {
-                        temperature: 0, // لضمان دقة الأرقام وعدم التخمين
+                        temperature: 0, // لأعلى دقة OCR
                         maxOutputTokens: 2048
                     }
                 })
@@ -69,7 +68,7 @@ export const useImageAnalysis = () => {
                 const inspectionTime = new Date().toLocaleString('ar-SA');
                 setResult(`🕒 وقت الفحص: ${inspectionTime}\nــــــــــــــــــــــــــــــــــــــــ\n\n${text}`);
             } else {
-                setResult("⚠️ لم يتم إصدار تقرير. تأكد من وضوح الصورة ومحتواها الكهربائي.");
+                setResult("⚠️ تعذر تحليل الحالة. تأكد من وضوح الصورة ومحتواها الكهربائي.");
             }
         } catch (error) {
             setResult("❌ فشل الاتصال بالسيرفر. تأكد من مفتاح الـ API والإنترنت.");
@@ -85,7 +84,7 @@ export const useImageAnalysis = () => {
         setChatHistory((prev) => [...prev, { role: "user", text: question }]);
 
         try {
-            const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent?key=${apiKey}`, {
+            const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro:generateContent?key=${apiKey}`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
