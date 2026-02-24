@@ -172,13 +172,16 @@ export default function SmartMeterPage() {
         return [...sFiles, ...bulkFiles];
     };
 
+    // ✅ التحقق إذا كان الرد هو رسالة رفض للصورة
+    const isRejectedImage = result?.includes("عذراً، الصورة المرفقة لا تحتوي على عداد");
+
     return (
         <main className="min-h-screen bg-[#050505] text-white p-6 font-sans rtl" dir="rtl">
             <div className="max-w-xl mx-auto pb-10">
                 <div className="flex items-center justify-between mb-8 border-b border-zinc-800 pb-5">
                     <div className="flex items-center gap-3">
                         <div className="bg-blue-600 p-2 rounded-xl shadow-lg"><Zap size={22} fill="white" /></div>
-                        <h1 className="text-xl font-black uppercase tracking-tighter">Supervisor AI v5.8</h1>
+                        <h1 className="text-xl font-black uppercase tracking-tighter">Supervisor AI v5.9</h1>
                     </div>
                     <ShieldCheck className="text-zinc-700" size={24} />
                 </div>
@@ -215,7 +218,6 @@ export default function SmartMeterPage() {
                         </div>
                     )}
 
-                    {/* ✅ قائمة الفحص الدقيق */}
                     {activeTab === "deep" && (
                         <div className="w-full h-full overflow-y-auto custom-scrollbar p-1 flex flex-col gap-2">
                             <label className="flex flex-col items-center justify-center bg-zinc-800/50 hover:bg-zinc-800 border-2 border-dashed border-emerald-600/50 p-3 rounded-2xl cursor-pointer transition-all">
@@ -251,7 +253,6 @@ export default function SmartMeterPage() {
                     )}
                 </div>
 
-                {/* أزرار التحليل */}
                 {activeTab === "photo" && preview && !result && (
                     <button onClick={() => selectedFile && analyzeImage(selectedFile as any)} disabled={loading} className="w-full py-6 bg-blue-600 rounded-3xl font-black text-sm flex items-center justify-center gap-3 active:scale-95 transition-all shadow-xl disabled:opacity-50">
                         {loading ? <RefreshCw className="animate-spin" /> : <Play fill="white" />} {loading ? "جارِ الفحص السريع..." : "بـدء الـتـحـلـيـل الـسـريـع"}
@@ -264,66 +265,78 @@ export default function SmartMeterPage() {
                     </button>
                 )}
 
-                {/* ✅ قسم النتائج والمحادثة */}
+                {/* ✅ قسم النتائج والمحادثة (مع التوجيه الذكي) */}
                 {result && (
                     <div className="space-y-4 animate-in slide-in-from-bottom-5">
-                        {/* 1. التقرير الأساسي */}
-                        <div className={`bg-zinc-900 p-8 rounded-[2rem] border-t-4 shadow-2xl ${activeTab === "deep" ? "border-emerald-600" : "border-blue-600"}`}>
-                            <h3 className={`font-black text-[10px] uppercase mb-4 tracking-widest ${activeTab === "deep" ? "text-emerald-500" : "text-blue-500"}`}>التقرير الفني المعتمد</h3>
-                            <p className="text-sm leading-relaxed text-zinc-300 whitespace-pre-wrap font-medium">{result}</p>
-                        </div>
 
-                        {/* 2. قسم الاستفسار التفاعلي الجديد 💬 */}
-                        <div className={`bg-zinc-900 p-6 rounded-[2rem] border-t-2 shadow-2xl ${activeTab === "deep" ? "border-emerald-600/50" : "border-blue-600/50"}`}>
-                            <h3 className="font-bold text-[12px] mb-4 flex items-center gap-2 text-white">
-                                <span>💬</span> استفسار فني إضافي
-                            </h3>
-
-                            {/* سجل المحادثة */}
-                            {chatHistory && chatHistory.length > 0 && (
-                                <div className="space-y-3 mb-4 max-h-60 overflow-y-auto pr-2 custom-scrollbar">
-                                    {chatHistory.map((msg, index) => (
-                                        <div key={index} className={`p-4 rounded-2xl text-sm ${msg.role === 'user' ? 'bg-zinc-800 text-white border border-zinc-700' : 'bg-blue-900/20 text-blue-100 border border-blue-800/30'}`}>
-                                            <span className="font-bold mb-2 block text-xs opacity-70">
-                                                {msg.role === 'user' ? '👨‍🔧 المهندس الميداني:' : '🤖 المستشار الذكي:'}
-                                            </span>
-                                            <p className="leading-relaxed whitespace-pre-wrap">{msg.text}</p>
-                                        </div>
-                                    ))}
-                                </div>
-                            )}
-
-                            {/* حقل إدخال الاستفسار */}
-                            <div className="flex gap-2 items-center">
-                                <input
-                                    type="text"
-                                    value={question}
-                                    onChange={(e) => setQuestion(e.target.value)}
-                                    placeholder="اسأل المستشار عن تفاصيل الصورة..."
-                                    className="flex-1 bg-[#0a0a0a] border border-zinc-800 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-blue-500 transition-colors"
-                                    onKeyDown={(e) => {
-                                        if (e.key === 'Enter' && question.trim() && !chatLoading) {
-                                            askFollowUp(question);
-                                            setQuestion("");
-                                        }
-                                    }}
-                                />
-                                <button
-                                    onClick={() => {
-                                        if (question.trim() && !chatLoading) {
-                                            askFollowUp(question);
-                                            setQuestion("");
-                                        }
-                                    }}
-                                    disabled={chatLoading || !question.trim()}
-                                    className="bg-blue-600 hover:bg-blue-500 disabled:bg-zinc-800 disabled:text-zinc-500 text-white p-3 rounded-xl transition-all shadow-lg flex items-center justify-center min-w-[50px]"
-                                >
-                                    {chatLoading ? <RefreshCw className="animate-spin" size={20} /> : <Send size={20} />}
-                                </button>
+                        {isRejectedImage ? (
+                            // 🛑 عرض التحذير إذا كانت الصورة ليست لعداد (مثل التفاحة)
+                            <div className="bg-red-900/20 p-6 rounded-[2rem] border-2 border-red-600/50 shadow-2xl text-center">
+                                <h3 className="font-black text-red-500 mb-3 text-lg">⚠️ تنبيه من النظام</h3>
+                                <p className="text-sm leading-relaxed text-red-200 font-medium">{result}</p>
                             </div>
-                        </div>
+                        ) : (
+                            // ✅ عرض التقرير والمحادثة إذا كانت الصورة سليمة للعداد
+                            <>
+                                {/* 1. التقرير الأساسي */}
+                                <div className={`bg-zinc-900 p-8 rounded-[2rem] border-t-4 shadow-2xl ${activeTab === "deep" ? "border-emerald-600" : "border-blue-600"}`}>
+                                    <h3 className={`font-black text-[10px] uppercase mb-4 tracking-widest ${activeTab === "deep" ? "text-emerald-500" : "text-blue-500"}`}>التقرير الفني المعتمد</h3>
+                                    <p className="text-sm leading-relaxed text-zinc-300 whitespace-pre-wrap font-medium">{result}</p>
+                                </div>
 
-                        {/* 3. أزرار الإجراءات */}
+                                {/* 2. قسم الاستفسار التفاعلي 💬 */}
+                                <div className={`bg-zinc-900 p-6 rounded-[2rem] border-t-2 shadow-2xl ${activeTab === "deep" ? "border-emerald-600/50" : "border-blue-600/50"}`}>
+                                    <h3 className="font-bold text-[12px] mb-4 flex items-center gap-2 text-white">
+                                        <span>💬</span> استفسار فني إضافي
+                                    </h3>
+
+                                    {/* سجل المحادثة */}
+                                    {chatHistory && chatHistory.length > 0 && (
+                                        <div className="space-y-3 mb-4 max-h-60 overflow-y-auto pr-2 custom-scrollbar">
+                                            {chatHistory.map((msg, index) => (
+                                                <div key={index} className={`p-4 rounded-2xl text-sm ${msg.role === 'user' ? 'bg-zinc-800 text-white border border-zinc-700' : 'bg-blue-900/20 text-blue-100 border border-blue-800/30'}`}>
+                                                    <span className="font-bold mb-2 block text-xs opacity-70">
+                                                        {msg.role === 'user' ? '👨‍🔧 المهندس الميداني:' : '🤖 المستشار الذكي:'}
+                                                    </span>
+                                                    <p className="leading-relaxed whitespace-pre-wrap">{msg.text}</p>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+
+                                    {/* حقل إدخال الاستفسار */}
+                                    <div className="flex gap-2 items-center">
+                                        <input
+                                            type="text"
+                                            value={question}
+                                            onChange={(e) => setQuestion(e.target.value)}
+                                            placeholder="اسأل المستشار عن تفاصيل الصورة..."
+                                            className="flex-1 bg-[#0a0a0a] border border-zinc-800 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-blue-500 transition-colors"
+                                            onKeyDown={(e) => {
+                                                if (e.key === 'Enter' && question.trim() && !chatLoading) {
+                                                    askFollowUp(question);
+                                                    setQuestion("");
+                                                }
+                                            }}
+                                        />
+                                        <button
+                                            onClick={() => {
+                                                if (question.trim() && !chatLoading) {
+                                                    askFollowUp(question);
+                                                    setQuestion("");
+                                                }
+                                            }}
+                                            disabled={chatLoading || !question.trim()}
+                                            className="bg-blue-600 hover:bg-blue-500 disabled:bg-zinc-800 disabled:text-zinc-500 text-white p-3 rounded-xl transition-all shadow-lg flex items-center justify-center min-w-[50px]"
+                                        >
+                                            {chatLoading ? <RefreshCw className="animate-spin" size={20} /> : <Send size={20} />}
+                                        </button>
+                                    </div>
+                                </div>
+                            </>
+                        )}
+
+                        {/* 3. أزرار الإجراءات (تظهر دائماً) */}
                         <div className="flex gap-3 pt-2">
                             <button onClick={handleShare} className="flex-1 bg-green-600 hover:bg-green-500 py-4 rounded-2xl font-bold text-sm flex items-center justify-center gap-2 active:scale-95 transition-all shadow-lg"><Share2 size={18} /> مشاركة التقرير</button>
                             <button onClick={handleNewInspection} className="flex-1 bg-zinc-800 hover:bg-zinc-700 py-4 rounded-2xl font-bold text-sm flex items-center justify-center gap-2 active:scale-95 transition-all shadow-lg"><PlusCircle size={18} /> فحص جديد</button>
