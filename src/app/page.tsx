@@ -3,7 +3,7 @@ import { useState, useRef, useEffect } from "react";
 import { useImageAnalysis } from "@/hooks/useImageAnalysis";
 import { Scan, Video, Upload, Play, RefreshCw, Zap, ShieldCheck, Share2, PlusCircle, Layers, CheckSquare, Camera, Images, CheckCircle2, Send } from "lucide-react";
 
-// ✅ القائمة الشاملة المعتمدة (21 صورة حسب طلبك)
+// ✅ القائمة الشاملة المعتمدة
 const SOP_LIST = [
     { id: 'box', label: 'صورة الصندوق ( مع توضيح رقم الاشتراك )' },
     { id: 'full_wiring', label: 'صورة توصيلات العداد بالكامل' },
@@ -31,19 +31,15 @@ const SOP_LIST = [
 export default function SmartMeterPage() {
     const [activeTab, setActiveTab] = useState<"photo" | "live" | "deep">("photo");
 
-    // ✅ استدعاء متغيرات المحادثة الجديدة من الـ Hook
     const { analyzeImage, loading, result, resetAnalysis, askFollowUp, chatHistory, chatLoading } = useImageAnalysis();
 
-    // حالات الفحص السريع
     const [preview, setPreview] = useState<string | null>(null);
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
     const [currentFile, setCurrentFile] = useState<File | null>(null);
 
-    // حالات الفحص الدقيق المحدثة
     const [slotFiles, setSlotFiles] = useState<Record<string, { file: File, preview: string }>>({});
     const [bulkFiles, setBulkFiles] = useState<File[]>([]);
 
-    // ✅ حالة جديدة لحفظ سؤال الفني
     const [question, setQuestion] = useState("");
 
     const videoRef = useRef<HTMLVideoElement>(null);
@@ -64,7 +60,7 @@ export default function SmartMeterPage() {
         setActiveTab(tab);
         if (tab !== "live") stopCamera();
         resetAnalysis();
-        setQuestion(""); // تصفير السؤال عند التبديل
+        setQuestion("");
     };
 
     const startLive = async () => {
@@ -102,7 +98,7 @@ export default function SmartMeterPage() {
         setCurrentFile(null);
         setSlotFiles({});
         setBulkFiles([]);
-        setQuestion(""); // تصفير مربع المحادثة
+        setQuestion("");
         resetAnalysis();
     };
 
@@ -110,7 +106,6 @@ export default function SmartMeterPage() {
         if (!result) return;
         const currentDate = new Date().toLocaleString('ar-SA', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
 
-        // دمج التقرير مع المحادثات الإضافية (إن وجدت)
         let chatText = "";
         if (chatHistory && chatHistory.length > 0) {
             chatText = "\n\n💬 *استفسارات إضافية:*\n" + chatHistory.map(msg => `*${msg.role === 'user' ? 'سؤال الفني:' : 'رد النظام:'}* ${msg.text}`).join("\n");
@@ -172,11 +167,11 @@ export default function SmartMeterPage() {
         return [...sFiles, ...bulkFiles];
     };
 
-    // ✅ التحقق إذا كان الرد هو رسالة رفض للصورة
     const isRejectedImage = result?.includes("عذراً، الصورة المرفقة لا تحتوي على عداد");
 
     return (
-        <main className="min-h-screen bg-[#050505] text-white p-6 font-sans rtl" dir="rtl">
+        // ✅ التعديل هنا: إضافة overflow-x-hidden و touch-pan-y و w-full max-w-full
+        <main className="min-h-screen bg-[#050505] text-white p-6 font-sans rtl overflow-x-hidden w-full max-w-full touch-pan-y" dir="rtl">
             <div className="max-w-xl mx-auto pb-10">
                 <div className="flex items-center justify-between mb-8 border-b border-zinc-800 pb-5">
                     <div className="flex items-center gap-3">
@@ -265,32 +260,26 @@ export default function SmartMeterPage() {
                     </button>
                 )}
 
-                {/* ✅ قسم النتائج والمحادثة (مع التوجيه الذكي) */}
                 {result && (
                     <div className="space-y-4 animate-in slide-in-from-bottom-5">
 
                         {isRejectedImage ? (
-                            // 🛑 عرض التحذير إذا كانت الصورة ليست لعداد (مثل التفاحة)
                             <div className="bg-red-900/20 p-6 rounded-[2rem] border-2 border-red-600/50 shadow-2xl text-center">
                                 <h3 className="font-black text-red-500 mb-3 text-lg">⚠️ تنبيه من النظام</h3>
                                 <p className="text-sm leading-relaxed text-red-200 font-medium">{result}</p>
                             </div>
                         ) : (
-                            // ✅ عرض التقرير والمحادثة إذا كانت الصورة سليمة للعداد
                             <>
-                                {/* 1. التقرير الأساسي */}
                                 <div className={`bg-zinc-900 p-8 rounded-[2rem] border-t-4 shadow-2xl ${activeTab === "deep" ? "border-emerald-600" : "border-blue-600"}`}>
                                     <h3 className={`font-black text-[10px] uppercase mb-4 tracking-widest ${activeTab === "deep" ? "text-emerald-500" : "text-blue-500"}`}>التقرير الفني المعتمد</h3>
                                     <p className="text-sm leading-relaxed text-zinc-300 whitespace-pre-wrap font-medium">{result}</p>
                                 </div>
 
-                                {/* 2. قسم الاستفسار التفاعلي 💬 */}
                                 <div className={`bg-zinc-900 p-6 rounded-[2rem] border-t-2 shadow-2xl ${activeTab === "deep" ? "border-emerald-600/50" : "border-blue-600/50"}`}>
                                     <h3 className="font-bold text-[12px] mb-4 flex items-center gap-2 text-white">
                                         <span>💬</span> استفسار فني إضافي
                                     </h3>
 
-                                    {/* سجل المحادثة */}
                                     {chatHistory && chatHistory.length > 0 && (
                                         <div className="space-y-3 mb-4 max-h-60 overflow-y-auto pr-2 custom-scrollbar">
                                             {chatHistory.map((msg, index) => (
@@ -304,7 +293,6 @@ export default function SmartMeterPage() {
                                         </div>
                                     )}
 
-                                    {/* حقل إدخال الاستفسار */}
                                     <div className="flex gap-2 items-center">
                                         <input
                                             type="text"
@@ -336,7 +324,6 @@ export default function SmartMeterPage() {
                             </>
                         )}
 
-                        {/* 3. أزرار الإجراءات (تظهر دائماً) */}
                         <div className="flex gap-3 pt-2">
                             <button onClick={handleShare} className="flex-1 bg-green-600 hover:bg-green-500 py-4 rounded-2xl font-bold text-sm flex items-center justify-center gap-2 active:scale-95 transition-all shadow-lg"><Share2 size={18} /> مشاركة التقرير</button>
                             <button onClick={handleNewInspection} className="flex-1 bg-zinc-800 hover:bg-zinc-700 py-4 rounded-2xl font-bold text-sm flex items-center justify-center gap-2 active:scale-95 transition-all shadow-lg"><PlusCircle size={18} /> فحص جديد</button>
@@ -344,7 +331,6 @@ export default function SmartMeterPage() {
                     </div>
                 )}
 
-                {/* ✅ بصمة المطور وحفظ الحقوق */}
                 <div className="mt-16 mb-4 text-center opacity-50 hover:opacity-100 transition-opacity duration-300">
                     <p className="text-[10px] text-zinc-500 tracking-[0.2em] uppercase font-medium" dir="ltr">
                         Developed by <span className="text-blue-500 font-bold">Mashhoor Alabbas</span>
