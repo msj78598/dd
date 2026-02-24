@@ -11,6 +11,7 @@ export const useImageAnalysis = () => {
     const analyzeImage = async (imageInput: File | File[]) => {
         setLoading(true);
         setResult(null);
+        setChatHistory([]);
         const apiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY;
         const files = Array.isArray(imageInput) ? imageInput : [imageInput];
 
@@ -29,8 +30,8 @@ export const useImageAnalysis = () => {
 
             setSavedImageParts(imageParts);
 
-            // 🚀 الهيكلية الصحيحة والمجربة لـ Gemini 2.5 Pro
-            const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro:generateContent?key=${apiKey}`, {
+            // 🚀 الهيكلية الصحيحة لطلب API Gemini 1.5 Pro
+            const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent?key=${apiKey}`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
@@ -38,7 +39,7 @@ export const useImageAnalysis = () => {
                     contents: [
                         {
                             parts: [
-                                { text: "حلل الصور وأصدر تقريراً فنياً دقيقاً بناءً على التعليمات." },
+                                { text: "قم بإجراء الفحص الفني للصور المرفقة بناءً على التعليمات الصارمة الموجهة إليك." },
                                 ...imageParts as any[]
                             ]
                         }
@@ -50,7 +51,7 @@ export const useImageAnalysis = () => {
                         { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_NONE" }
                     ],
                     generationConfig: {
-                        temperature: 0, // للوصول لأعلى دقة في قراءة الأرقام (OCR)
+                        temperature: 0, // لضمان دقة الأرقام وعدم التخمين
                         maxOutputTokens: 2048
                     }
                 })
@@ -59,7 +60,6 @@ export const useImageAnalysis = () => {
             const data = await response.json();
 
             if (data.error) {
-                console.error("API Error Detail:", data.error);
                 setResult(`❌ خطأ تقني: ${data.error.message}`);
                 return;
             }
@@ -85,11 +85,11 @@ export const useImageAnalysis = () => {
         setChatHistory((prev) => [...prev, { role: "user", text: question }]);
 
         try {
-            const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro:generateContent?key=${apiKey}`, {
+            const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent?key=${apiKey}`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
-                    system_instruction: { parts: [{ text: "أنت المستشار الفني. أجب باختصار على السؤال بناءً على التقرير والصور." }] },
+                    system_instruction: { parts: [{ text: "أنت المستشار الفني. أجب باختصار هندسي حاد بناءً على التقرير والصور." }] },
                     contents: [
                         { parts: [{ text: `التقرير: ${result}\nالسؤال: ${question}` }, ...savedImageParts] }
                     ]
