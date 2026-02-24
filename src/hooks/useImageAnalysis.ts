@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { systemInstruction } from "./systemInstruction";
 
 export const useImageAnalysis = () => {
     const [loading, setLoading] = useState(false);
@@ -8,11 +7,31 @@ export const useImageAnalysis = () => {
     const [chatHistory, setChatHistory] = useState<{ role: string; text: string }[]>([]);
     const [savedImageParts, setSavedImageParts] = useState<any[] | null>(null);
 
+    const resetAnalysis = () => {
+        setResult(null);
+        setChatHistory([]);
+        setSavedImageParts(null);
+        if (window.speechSynthesis) window.speechSynthesis.cancel();
+    };
+
     const analyzeImage = async (imageInput: File | File[]) => {
         setLoading(true);
         setResult(null);
+        setChatHistory([]);
         const apiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY;
         const files = Array.isArray(imageInput) ? imageInput : [imageInput];
+
+        const prompt = `حلل الصور وأصدر تقريراً فنياً مرتباً:
+        
+        النتيجة النهائية: [سليم ✅ / غير سليم ⚠️ (عبث) / غير سليم 🛠️ (عطل فني) / غير سليم 🚧 (عائق)]
+        السبب الرئيسي: [ذكر السبب]
+
+        📋 بيانات المنظومة:
+        • نوع العداد: [مباشر / CT]
+        • رقم العداد: [الرقم المستخرج]
+        • سعة القاطع: [القيمة بالأمبير]
+
+        🔍 التحليل الفني والتوصيات...`;
 
         try {
             const imageParts = await Promise.all(
@@ -29,49 +48,36 @@ export const useImageAnalysis = () => {
 
             setSavedImageParts(imageParts);
 
-            // 🚀 الهيكلية الصحيحة لطلب API Gemini 2.5 Pro
+            // 🚀 استخدام النسخة المعتمدة Gemini 2.5 Pro (150 Quota)
             const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro:generateContent?key=${apiKey}`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
-                    system_instruction: systemInstruction,
-                    contents: [
-                        {
-                            parts: [
-                                { text: "أجرِ الفحص الفني والتدقيق الجنائي للصور المرفقة بناءً على التعليمات الصارمة الموجهة إليك." },
-                                ...imageParts as any[]
-                            ]
-                        }
-                    ],
+                    contents: [{ parts: [{ text: prompt }, ...imageParts as any[]] }],
                     safetySettings: [
                         { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE" },
                         { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_NONE" },
                         { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_NONE" },
                         { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_NONE" }
                     ],
-                    generationConfig: {
-                        temperature: 0, // لأعلى دقة OCR
-                        maxOutputTokens: 2048
-                    }
+                    generationConfig: { temperature: 0.1, topP: 0.95, maxOutputTokens: 2048 }
                 })
             });
 
             const data = await response.json();
 
             if (data.error) {
-                setResult(`❌ خطأ تقني: ${data.error.message}`);
-                return;
-            }
-
-            if (data.candidates?.[0]?.content?.parts?.[0]?.text) {
+                // إذا كان الخطأ من السيرفر (مثل تجاوز الكوتا)
+                setResult(`❌ خطأ من النظام: ${data.error.message}`);
+            } else if (data.candidates?.[0]) {
                 const text = data.candidates[0].content.parts[0].text;
                 const inspectionTime = new Date().toLocaleString('ar-SA');
                 setResult(`🕒 وقت الفحص: ${inspectionTime}\nــــــــــــــــــــــــــــــــــــــــ\n\n${text}`);
             } else {
-                setResult("⚠️ تعذر تحليل الحالة. تأكد من وضوح الصورة ومحتواها الكهربائي.");
+                setResult("⚠️ تعذر التحليل. قد يكون السبب جودة الصورة أو حجمها الكبير. جرب رفع صورة واحدة فقط.");
             }
         } catch (error) {
-            setResult("❌ فشل الاتصال بالسيرفر. تأكد من مفتاح الـ API والإنترنت.");
+            setResult("❌ فشل الاتصال. تأكد من الإنترنت ومفتاح الـ API.");
         } finally {
             setLoading(false);
         }
@@ -88,14 +94,11 @@ export const useImageAnalysis = () => {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
-                    system_instruction: { parts: [{ text: "أنت المستشار الفني. أجب باختصار هندسي حاد بناءً على التقرير والصور." }] },
-                    contents: [
-                        { parts: [{ text: `التقرير: ${result}\nالسؤال: ${question}` }, ...savedImageParts] }
-                    ]
+                    contents: [{ parts: [{ text: `التقرير: "${result}"، أجب باختصار على: "${question}"` }, ...savedImageParts] }]
                 })
             });
             const data = await response.json();
-            const aiReply = data.candidates?.[0]?.content?.parts?.[0]?.text || "⚠️ لا توجد إجابة.";
+            const aiReply = data.candidates?.[0]?.content.parts[0]?.text || "⚠️ لا توجد إجابة.";
             setChatHistory((prev) => [...prev, { role: "ai", text: aiReply }]);
         } catch (error) {
             setChatHistory((prev) => [...prev, { role: "ai", text: "❌ فشل الاستفسار." }]);
@@ -104,5 +107,5 @@ export const useImageAnalysis = () => {
         }
     };
 
-    return { analyzeImage, loading, result, chatHistory, chatLoading, askFollowUp };
+    return { analyzeImage, loading, result, resetAnalysis, askFollowUp, chatHistory, chatLoading };
 };
