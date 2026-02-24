@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { systemInstruction } from "./systemInstruction";
+import { systemInstruction } from "./useGeminiLive";
 
 export const useImageAnalysis = () => {
     const [loading, setLoading] = useState(false);
