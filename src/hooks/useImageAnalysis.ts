@@ -21,27 +21,24 @@ export const useImageAnalysis = () => {
         const apiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY;
         const files = Array.isArray(imageInput) ? imageInput : [imageInput];
 
-        // 🧠 البرومبت الفني الموحد (V6.5)
-        const prompt = `أصدر تقريراً فنياً دقيقاً بناءً على الصور المرفقة وفق الهيكل التالي:
+        const prompt = `حلل الصور وأصدر تقريراً فنياً بالهيكل التالي:
         
-        النتيجة النهائية: [سليم ✅ / غير سليم ⚠️ (عبث) / غير سليم 🛠️ (عطل فني) / غير سليم 🚧 (عائق تقني)]
-        السبب الرئيسي: [ذكر السبب باختصار شديد]
+        النتيجة النهائية: [سليم ✅ / غير سليم ⚠️ (عبث) / غير سليم 🛠️ (عطل فني) / غير سليم 🚧 (عائق)]
+        السبب الرئيسي: [ذكر السبب باختصار]
 
         📋 بيانات المنظومة:
         • نوع العداد: [مباشر / محولات تيار (CT)]
-        • رقم العداد: [استخرج الـ 16 رمز بدقة]
+        • رقم العداد: [الرقم التسلسلي المستخرج]
         • سعة القاطع: [القيمة بالأمبير]
 
         🔍 التحليل الفني:
-        • [حالة التوصيلات والأسلاك بدقة]
-        • [مقارنة القياسات إن وجدت كقراءة الكلامب ميتر مع شاشة العداد]
-        • [رصد أي آثار احتراق أو تلاعب أو عوائق تقنية]
+        • [حالة التوصيلات والأسلاك]
+        • [مقارنة القياسات إن وجدت]
+        • [رصد أي تلاعب أو عوائق]
 
         💡 التوصيات:
-        • [توصية ميدانية أولى]
-        • [توصية ميدانية ثانية]
-
-        (تنبيه: إذا كانت الصورة غير متعلقة بالكهرباء، فعل بوابة التحقق واعتذر).`;
+        • [إجراء ميداني 1]
+        • [إجراء ميداني 2]`;
 
         try {
             const imageParts = await Promise.all(
@@ -58,14 +55,12 @@ export const useImageAnalysis = () => {
 
             setSavedImageParts(imageParts);
 
-            // 🚀 الاتصال بموديل Pro لضمان أعلى دقة OCR وتحليل
-            // يمكنك تغيير gemini-1.5-pro إلى gemini-2.5-pro إذا أردت تجربة أحدث نسخة في قائمتك
-            const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent?key=${apiKey}`, {
+            // 🚀 استخدام أقوى نسخة متاحة في قائمتك للدقة المطلقة
+            const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-pro:generateContent?key=${apiKey}`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                     contents: [{ parts: [{ text: prompt }, ...imageParts as any[]] }],
-                    // 🛡️ إعدادات الأمان لتعطيل الحجب التلقائي للصور التقنية
                     safetySettings: [
                         { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE" },
                         { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_NONE" },
@@ -73,7 +68,7 @@ export const useImageAnalysis = () => {
                         { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_NONE" }
                     ],
                     generationConfig: {
-                        temperature: 0.1, // درجة حرارة منخفضة جداً لضمان دقة الأرقام ومنع الهلوسة
+                        temperature: 0.1, // لضمان دقة الأرقام وعدم التخمين
                         topP: 0.95,
                         maxOutputTokens: 2048
                     }
@@ -84,26 +79,17 @@ export const useImageAnalysis = () => {
 
             if (data.candidates?.[0]) {
                 const text = data.candidates[0].content.parts[0].text;
-
-                if (text.includes("عذراً، الصورة المرفقة لا تحتوي")) {
+                if (text.includes("عذراً")) {
                     setResult(text);
                 } else {
                     const inspectionTime = new Date().toLocaleString('ar-SA');
-                    setResult(`🕒 وقت الفحص الفعلي: ${inspectionTime}\nــــــــــــــــــــــــــــــــــــــــ\n\n${text}`);
-                }
-
-                // نطق النتيجة صوتياً للسهولة الميدانية
-                if (window.speechSynthesis) {
-                    window.speechSynthesis.cancel();
-                    const utterance = new SpeechSynthesisUtterance(text.split('\n')[0]); // نطق النتيجة النهائية فقط
-                    utterance.lang = 'ar-SA';
-                    window.speechSynthesis.speak(utterance);
+                    setResult(`🕒 وقت الفحص: ${inspectionTime}\nــــــــــــــــــــــــــــــــــــــــ\n\n${text}`);
                 }
             } else {
-                setResult("⚠️ تعذر تحليل الحالة. تأكد من جودة الصورة أو حاول رفع صورة واحدة فقط.");
+                setResult("⚠️ تعذر التحليل. تأكد من وضوح الصورة أو جرب نسخة Gemini 2.5 Pro إذا استمر الضغط على الكوتا.");
             }
         } catch (error) {
-            setResult("❌ فشل الاتصال بمحرك التدقيق الفني.");
+            setResult("❌ فشل الاتصال بالمحرك الفني.");
         } finally {
             setLoading(false);
         }
@@ -115,19 +101,16 @@ export const useImageAnalysis = () => {
         const apiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY;
         setChatHistory((prev) => [...prev, { role: "user", text: question }]);
 
-        const chatPrompt = `أنت المدقق الفني. بناءً على التقرير: "${result}"، أجب على استفسار الفني: "${question}". 
-        أجب بدقة تقنية حادة ومختصرة. ارفض أي أسئلة خارج نطاق الحالة الكهربائية المرفقة.`;
-
         try {
-            const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent?key=${apiKey}`, {
+            const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-pro:generateContent?key=${apiKey}`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
-                    contents: [{ parts: [{ text: chatPrompt }, ...savedImageParts] }]
+                    contents: [{ parts: [{ text: `بناءً على التقرير: "${result}"، أجب باختصار على: "${question}"` }, ...savedImageParts] }]
                 })
             });
             const data = await response.json();
-            const aiReply = data.candidates?.[0]?.content.parts[0]?.text || "⚠️ لم أتمكن من الرد حالياً.";
+            const aiReply = data.candidates?.[0]?.content.parts[0]?.text || "⚠️ لا توجد إجابة.";
             setChatHistory((prev) => [...prev, { role: "ai", text: aiReply }]);
         } catch (error) {
             setChatHistory((prev) => [...prev, { role: "ai", text: "❌ فشل الاستفسار." }]);
