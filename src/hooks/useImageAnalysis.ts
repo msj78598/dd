@@ -21,24 +21,17 @@ export const useImageAnalysis = () => {
         const apiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY;
         const files = Array.isArray(imageInput) ? imageInput : [imageInput];
 
-        const prompt = `حلل الصور وأصدر تقريراً فنياً بالهيكل التالي:
+        const prompt = `حلل الصور وأصدر تقريراً فنياً مرتباً:
         
         النتيجة النهائية: [سليم ✅ / غير سليم ⚠️ (عبث) / غير سليم 🛠️ (عطل فني) / غير سليم 🚧 (عائق)]
-        السبب الرئيسي: [ذكر السبب باختصار]
+        السبب الرئيسي: [ذكر السبب]
 
         📋 بيانات المنظومة:
-        • نوع العداد: [مباشر / محولات تيار (CT)]
-        • رقم العداد: [الرقم التسلسلي المستخرج]
+        • نوع العداد: [مباشر / CT]
+        • رقم العداد: [الرقم المستخرج]
         • سعة القاطع: [القيمة بالأمبير]
 
-        🔍 التحليل الفني:
-        • [حالة التوصيلات والأسلاك]
-        • [مقارنة القياسات إن وجدت]
-        • [رصد أي تلاعب أو عوائق]
-
-        💡 التوصيات:
-        • [إجراء ميداني 1]
-        • [إجراء ميداني 2]`;
+        🔍 التحليل الفني والتوصيات...`;
 
         try {
             const imageParts = await Promise.all(
@@ -55,8 +48,8 @@ export const useImageAnalysis = () => {
 
             setSavedImageParts(imageParts);
 
-            // 🚀 استخدام أقوى نسخة متاحة في قائمتك للدقة المطلقة
-            const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-pro:generateContent?key=${apiKey}`, {
+            // 🚀 استخدام النسخة المعتمدة Gemini 2.5 Pro (150 Quota)
+            const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro:generateContent?key=${apiKey}`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
@@ -67,29 +60,24 @@ export const useImageAnalysis = () => {
                         { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_NONE" },
                         { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_NONE" }
                     ],
-                    generationConfig: {
-                        temperature: 0.1, // لضمان دقة الأرقام وعدم التخمين
-                        topP: 0.95,
-                        maxOutputTokens: 2048
-                    }
+                    generationConfig: { temperature: 0.1, topP: 0.95, maxOutputTokens: 2048 }
                 })
             });
 
             const data = await response.json();
 
-            if (data.candidates?.[0]) {
+            if (data.error) {
+                // إذا كان الخطأ من السيرفر (مثل تجاوز الكوتا)
+                setResult(`❌ خطأ من النظام: ${data.error.message}`);
+            } else if (data.candidates?.[0]) {
                 const text = data.candidates[0].content.parts[0].text;
-                if (text.includes("عذراً")) {
-                    setResult(text);
-                } else {
-                    const inspectionTime = new Date().toLocaleString('ar-SA');
-                    setResult(`🕒 وقت الفحص: ${inspectionTime}\nــــــــــــــــــــــــــــــــــــــــ\n\n${text}`);
-                }
+                const inspectionTime = new Date().toLocaleString('ar-SA');
+                setResult(`🕒 وقت الفحص: ${inspectionTime}\nــــــــــــــــــــــــــــــــــــــــ\n\n${text}`);
             } else {
-                setResult("⚠️ تعذر التحليل. تأكد من وضوح الصورة أو جرب نسخة Gemini 2.5 Pro إذا استمر الضغط على الكوتا.");
+                setResult("⚠️ تعذر التحليل. قد يكون السبب جودة الصورة أو حجمها الكبير. جرب رفع صورة واحدة فقط.");
             }
         } catch (error) {
-            setResult("❌ فشل الاتصال بالمحرك الفني.");
+            setResult("❌ فشل الاتصال. تأكد من الإنترنت ومفتاح الـ API.");
         } finally {
             setLoading(false);
         }
@@ -102,11 +90,11 @@ export const useImageAnalysis = () => {
         setChatHistory((prev) => [...prev, { role: "user", text: question }]);
 
         try {
-            const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-pro:generateContent?key=${apiKey}`, {
+            const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro:generateContent?key=${apiKey}`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
-                    contents: [{ parts: [{ text: `بناءً على التقرير: "${result}"، أجب باختصار على: "${question}"` }, ...savedImageParts] }]
+                    contents: [{ parts: [{ text: `التقرير: "${result}"، أجب باختصار على: "${question}"` }, ...savedImageParts] }]
                 })
             });
             const data = await response.json();
